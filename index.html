@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Shiny Application: OzoneApp</title>
+  <meta charset="utf-8">
+  <meta name="description" content="Shiny Application: OzoneApp">
+  <meta name="author" content="John P">
+  <meta name="generator" content="slidify" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta http-equiv="X-UA-Compatible" content="chrome=1">
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/default.css" media="all" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/phone.css" 
+    media="only screen and (max-device-width: 480px)" >
+  <link rel="stylesheet" href="libraries/frameworks/io2012/css/slidify.css" >
+  <link rel="stylesheet" href="libraries/highlighters/highlight.js/css/tomorrow.css" />
+  <base target="_blank"> <!-- This amazingness opens all links in a new tab. -->  <link rel=stylesheet href="./assets/css/ribbons.css"></link>
+
+  
+  <!-- Grab CDN jQuery, fall back to local if offline -->
+  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+  <script>window.jQuery || document.write('<script src="libraries/widgets/quiz/js/jquery.js"><\/script>')</script> 
+  <script data-main="libraries/frameworks/io2012/js/slides" 
+    src="libraries/frameworks/io2012/js/require-1.0.8.min.js">
+  </script>
+  
+  
+
+</head>
+<body style="opacity: 0">
+  <slides class="layout-widescreen">
+    
+    <!-- LOGO SLIDE -->
+        <slide class="title-slide segue nobackground">
+  <hgroup class="auto-fadein">
+    <h1>Shiny Application: OzoneApp</h1>
+    <h2>A Reproducible Pitch </h2>
+    <p>John P<br/></p>
+  </hgroup>
+  <article></article>  
+</slide>
+    
+
+    <!-- SLIDES -->
+    <slide class="" id="slide-1" style="background:;">
+  <hgroup>
+    <h2>Introduction</h2>
+  </hgroup>
+  <article data-timings="">
+    <p>The purpose of this Shiny Application is to predict ozone concentration from temperature in New York City based upon the following dataset:</p>
+
+<p><a href="http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/quakes.html">http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/quakes.html</a></p>
+
+<p>I develop three different models for prediction:</p>
+
+<ol>
+<li>Linear Regression on all data [red]</li>
+<li>Linear Regression without Ozone outliers [blue]</li>
+<li>LOESS (curve fitting local polynomial regression) on all data [green]</li>
+</ol>
+
+<p><a href="https://papazian.shinyapps.io/OzoneApp/">https://papazian.shinyapps.io/OzoneApp/</a></p>
+
+<p>My first model is a simpe regression. There are a few ozone outliers (&gt; 100 ppb), so I develop a special linear model to account for potential measurement error. Additionally, I develop a LOESS curve because there appears to be a non-linear relationship.</p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-2" style="background:;">
+  <hgroup>
+    <h2>Plot in Shiny App</h2>
+  </hgroup>
+  <article data-timings="">
+    <p><img src="assets/fig/intro-1.png" alt="plot of chunk intro"></p>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-3" style="background:;">
+  <hgroup>
+    <h2>User Interface Code in R</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">library(shiny)
+shinyUI(fluidPage(
+  titlePanel(&quot;Predict Ozone Concentration from Temperature in New York City&quot;),
+  h5(&quot;by John P. on December 30, 2016&quot;),
+  h5(&quot;data source:  http://stat.ethz.ch/R-manual/R-devel/library/datasets/html/airquality.html&quot;),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput(&quot;sliderTemp&quot;, &quot;What is the temperature (degrees F)?&quot;, 50, 100, value = 85),
+      checkboxInput(&quot;showModel1&quot;, &quot;Show/Hide Model 1: Linear Regression on all data&quot;, value = TRUE),
+      checkboxInput(&quot;showModel2&quot;, &quot;Show/Hide Model 2: Linear Regression without Ozone outliers&quot;, value = TRUE),
+      checkboxInput(&quot;showModel3&quot;, &quot;Show/Hide Model 3: LOESS (curve fitting local polynomial regression) on all data&quot;, value = TRUE)
+    ),
+    mainPanel(
+      plotOutput(&quot;plot1&quot;),
+      h5(&quot;Predicted Ozone from Model 1: Linear Regression on all data&quot;),
+      textOutput(&quot;pred1&quot;),
+      h5(&quot;Predicted Ozone from Model 2: Linear Regression without Ozone outliers&quot;),
+      textOutput(&quot;pred2&quot;),
+      h5(&quot;Predicted Ozone from Model 3: LOESS (curve fitting local polynomial regression) on all data&quot;),
+      textOutput(&quot;pred3&quot;)
+    )
+  )
+))
+</code></pre>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+<slide class="" id="slide-4" style="background:;">
+  <hgroup>
+    <h2>Server Code in R</h2>
+  </hgroup>
+  <article data-timings="">
+    <pre><code class="r">library(shiny)
+shinyServer(function(input, output) 
+{
+
+  model1 &lt;- lm(Ozone ~ Temp, data=airquality)
+  model2 &lt;- lm(Ozone ~ Temp, data=subset(airquality, Ozone &lt; 100))
+  model3 &lt;- loess(Ozone ~ Temp, data=airquality)
+
+  model1pred &lt;- reactive(
+  {
+    TempInput &lt;- input$sliderTemp
+    predict(model1, newdata = data.frame(Temp = TempInput))
+  })
+
+  model2pred &lt;- reactive(
+  {
+    TempInput &lt;- input$sliderTemp
+    predict(model2, newdata = data.frame(Temp = TempInput))
+  })
+
+  model3pred &lt;- reactive(
+  {
+    TempInput &lt;- input$sliderTemp
+    predict(model3, newdata = data.frame(Temp = TempInput))
+  })
+
+  output$plot1 &lt;- renderPlot(
+  {
+    TempInput &lt;- input$sliderTemp
+
+    plot(x=airquality$Temp, y=airquality$Ozone, xlab=&quot;Temperature (degrees F)&quot;, ylab=&quot;Ozone (ppb)&quot;, bty = &quot;n&quot;, pch = 16)
+
+    if(input$showModel1)
+    {
+      abline(model1, col = &quot;red&quot;, lwd = 2)
+    }
+    if(input$showModel2)
+    {
+      abline(model2, col = &quot;blue&quot;, lwd = 2)
+    }
+    if(input$showModel3)
+    {
+      model3smooth &lt;- loess.smooth(airquality$Temp, airquality$Ozone, span = 2/3, degree = 1, family = c(&quot;symmetric&quot;, &quot;gaussian&quot;), evaluation=50, data=airquality)
+      lines(model3smooth, col = &quot;green&quot;, lwd = 2)
+    }
+
+    points(TempInput, model1pred(), col = &quot;red&quot;, pch = 16, cex = 2)
+    points(TempInput, model2pred(), col = &quot;blue&quot;, pch = 16, cex = 2)
+    points(TempInput, model3pred(), col = &quot;green&quot;, pch = 16, cex = 2)
+  })
+
+  output$pred1 &lt;- renderText(
+  {
+    model1pred()
+  })
+
+  output$pred2 &lt;- renderText(
+  {
+    model2pred()
+  })
+
+  output$pred3 &lt;- renderText(
+  {
+    model3pred()
+  })
+})
+</code></pre>
+
+<hr>
+
+  </article>
+  <!-- Presenter Notes -->
+</slide>
+
+    <slide class="backdrop"></slide>
+  </slides>
+  <div class="pagination pagination-small" id='io2012-ptoc' style="display:none;">
+    <ul>
+      <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=1 title='Introduction'>
+         1
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=2 title='Plot in Shiny App'>
+         2
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=3 title='User Interface Code in R'>
+         3
+      </a>
+    </li>
+    <li>
+      <a href="#" target="_self" rel='tooltip' 
+        data-slide=4 title='Server Code in R'>
+         4
+      </a>
+    </li>
+  </ul>
+  </div>  <!--[if IE]>
+    <script 
+      src="http://ajax.googleapis.com/ajax/libs/chrome-frame/1/CFInstall.min.js">  
+    </script>
+    <script>CFInstall.check({mode: 'overlay'});</script>
+  <![endif]-->
+</body>
+  <!-- Load Javascripts for Widgets -->
+  
+  <!-- LOAD HIGHLIGHTER JS FILES -->
+  <script src="libraries/highlighters/highlight.js/highlight.pack.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script>
+  <!-- DONE LOADING HIGHLIGHTER JS FILES -->
+   
+  </html>
